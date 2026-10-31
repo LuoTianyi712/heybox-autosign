@@ -1,0 +1,18 @@
+# 构建产物
+heybox-app/build/
+heybox-app/gen/
+heybox-app/dex/
+heybox-app/classes.jar
+
+# 签名相关，永不入库
+heybox-app/appkey.jks
+heybox-app/keystore.pass
+*.idsig
+小黑盒自动签到.apk
+
+# 本地工作目录（调试脚本、抓包、账号登录态等）
+work/
+
+# 其他
+*.zip
+Thumbs.db
