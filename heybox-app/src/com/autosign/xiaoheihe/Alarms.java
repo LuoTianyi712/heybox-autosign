@@ -33,14 +33,27 @@ final class Alarms {
         if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) {
             exact = false;
         }
+        boolean done = false;
         try {
-            if (exact) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pi);
-            } else {
-                am.setWindow(AlarmManager.RTC_WAKEUP, atMillis, 10L * 60 * 1000, pi);
+            // 优先走“闹钟”通道：厂商 ROM（华为/EMUI）对它放行最彻底，深度休眠也能准点触发
+            am.setAlarmClock(new AlarmManager.AlarmClockInfo(atMillis, null), pi);
+            done = true;
+        } catch (Exception ignored) {
+        }
+        if (!done) {
+            try {
+                if (exact) {
+                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pi);
+                } else {
+                    am.setWindow(AlarmManager.RTC_WAKEUP, atMillis, 10L * 60 * 1000, pi);
+                }
+                done = true;
+            } catch (SecurityException e) {
+                try {
+                    am.setWindow(AlarmManager.RTC_WAKEUP, atMillis, 10L * 60 * 1000, pi);
+                } catch (Exception ignored2) {
+                }
             }
-        } catch (SecurityException e) {
-            am.setWindow(AlarmManager.RTC_WAKEUP, atMillis, 10L * 60 * 1000, pi);
         }
         Store.setNextRun(ctx, atMillis);
     }

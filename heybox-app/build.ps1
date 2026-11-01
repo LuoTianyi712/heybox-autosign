@@ -50,7 +50,7 @@ if ($LASTEXITCODE -ne 0) { throw "aapt2 compile Ê§°Ü" }
 
 Write-Host "[2/6] aapt2 link..."
 $GenJava = Join-Path $Out "gen"
-& (Join-Path $Bt "aapt2.exe") link -o (Join-Path $Out "base.apk") -I $AndroidJar --manifest (Join-Path $AppDir "AndroidManifest.xml") --java $GenJava --min-sdk-version 24 --target-sdk-version 34 --version-code 52 --version-name "1.8.6" (Join-Path $Out "res.zip")
+& (Join-Path $Bt "aapt2.exe") link -o (Join-Path $Out "base.apk") -I $AndroidJar --manifest (Join-Path $AppDir "AndroidManifest.xml") --java $GenJava --min-sdk-version 24 --target-sdk-version 34 --version-code 53 --version-name "1.8.7" (Join-Path $Out "res.zip")
 if ($LASTEXITCODE -ne 0) { throw "aapt2 link Ê§°Ü" }
 
 Write-Host "[3/6] javac..."
@@ -96,10 +96,6 @@ $Aligned = Join-Path $Out "aligned.apk"
 if ($LASTEXITCODE -ne 0) { throw "zipalign Ê§°Ü" }
 
 $Ks = Join-Path $AppDir "appkey.jks"
-$KsPass = $env:XHH_KS_PASS
-$passFile = Join-Path $AppDir "keystore.pass"
-if (Test-Path $passFile) { $KsPass = ((Get-Content $passFile -Raw) -replace '\s', '') }
-if (-not $KsPass) { throw 'sign pass missing: put one-line password in heybox-app\keystore.pass or set env XHH_KS_PASS' }
 $Keytool = $null
 $candidates = @()
 $cmdKeytool = Get-Command keytool.exe -ErrorAction SilentlyContinue
@@ -112,12 +108,12 @@ foreach ($cand in $candidates) {
 if (-not $Keytool) { throw "ÕÒ²»µ½ keytool.exe" }
 if (-not (Test-Path $Ks)) {
     & $Keytool -genkeypair -v -keystore $Ks -alias heybox -keyalg RSA -keysize 2048 -validity 10950 `
-        -storepass $KsPass -keypass $KsPass `
+        -storepass autosign2026 -keypass autosign2026 `
         -dname "CN=HeyboxAutoSign, OU=personal, O=personal, L=CN, ST=CN, C=CN"
     if ($LASTEXITCODE -ne 0) { throw "keytool Ê§°Ü" }
 }
 $Final = Join-Path $Root "Ð¡ºÚºÐ×Ô¶¯Ç©µ½.apk"
-& (Join-Path $Bt "apksigner.bat") sign --ks $Ks --ks-pass pass:$KsPass --ks-key-alias heybox --out $Final $Aligned
+& (Join-Path $Bt "apksigner.bat") sign --ks $Ks --ks-pass pass:autosign2026 --ks-key-alias heybox --out $Final $Aligned
 if ($LASTEXITCODE -ne 0) { throw "apksigner Ê§°Ü" }
 
 & (Join-Path $Bt "apksigner.bat") verify --print-certs $Final
