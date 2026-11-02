@@ -591,6 +591,10 @@ public class LoginActivity extends Activity {
     }
 
     private void dbg(String line) {
+        String cut = line.length() > 300 ? line.substring(0, 300) + "…" : line;
+        Store.appendEvent(this, "login_log",
+                new java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.CHINA)
+                        .format(new java.util.Date()) + " " + cut);
         try {
             java.io.File dir = getExternalFilesDir(null);
             if (dir == null) {

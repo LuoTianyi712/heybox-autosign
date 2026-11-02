@@ -50,7 +50,7 @@ if ($LASTEXITCODE -ne 0) { throw "aapt2 compile Ê§°Ü" }
 
 Write-Host "[2/6] aapt2 link..."
 $GenJava = Join-Path $Out "gen"
-& (Join-Path $Bt "aapt2.exe") link -o (Join-Path $Out "base.apk") -I $AndroidJar --manifest (Join-Path $AppDir "AndroidManifest.xml") --java $GenJava --min-sdk-version 24 --target-sdk-version 34 --version-code 58 --version-name "1.9.2" (Join-Path $Out "res.zip")
+& (Join-Path $Bt "aapt2.exe") link -o (Join-Path $Out "base.apk") -I $AndroidJar --manifest (Join-Path $AppDir "AndroidManifest.xml") --java $GenJava --min-sdk-version 24 --target-sdk-version 34 --version-code 60 --version-name "1.9.4" (Join-Path $Out "res.zip")
 if ($LASTEXITCODE -ne 0) { throw "aapt2 link Ê§°Ü" }
 
 Write-Host "[3/6] javac..."

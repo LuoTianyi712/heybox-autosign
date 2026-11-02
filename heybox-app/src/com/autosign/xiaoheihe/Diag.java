@@ -138,6 +138,7 @@ final class Diag {
                 .append(" · 精确闹钟 ").append(exactOk(ctx) ? "已授权" : "未授权")
                 .append(" · 电池优化 ").append(batteryExempt(ctx) ? "已忽略" : "受限")
                 .append(" · Doze ").append(dozing(ctx) ? "是" : "否")
+                .append(" · 活跃度 ").append(bucket(ctx))
                 .append(" · 开机 ").append(uptimeText())
                 .append(" · 电量 ").append(batteryText(ctx));
         sb.append('\n');
@@ -198,8 +199,40 @@ final class Diag {
         }
     }
 
-    private static String uptimeText() {
-        long s = SystemClock.elapsedRealtime() / 1000L;
+    /** 应用活跃度分桶：RESTRICTED/RARE 是最容易被系统推迟的档位。 */
+    private static String bucket(Context ctx) {
+        try {
+            if (Build.VERSION.SDK_INT < 28) {
+                return "未知";
+            }
+            android.app.usage.UsageStatsManager usm = (android.app.usage.UsageStatsManager)
+                    ctx.getSystemService(Context.USAGE_STATS_SERVICE);
+            if (usm == null) {
+                return "未知";
+            }
+            switch (usm.getAppStandbyBucket()) {
+                case 10: return "ACTIVE";
+                case 20: return "WORKING_SET";
+                case 30: return "FREQUENT";
+                case 40: return "RARE";
+                case 45: return "RESTRICTED";
+                case 50: return "NEVER";
+                default: return "其他";
+            }
+        } catch (Exception e) {
+            return "未知";
+        }
+    }
+
+    static String networkShort(Context ctx) {
+        return netType(ctx);
+    }
+
+    static String batteryShort(Context ctx) {
+        return batteryText(ctx);
+    }
+
+    private static String uptimeText() {        long s = SystemClock.elapsedRealtime() / 1000L;
         return (s / 86400) + "d" + ((s % 86400) / 3600) + "h";
     }
 
@@ -245,9 +278,7 @@ final class Diag {
         return sb.toString();
     }
 
-    private static String one(HeyboxClient c, String path) {
-        long t0 = System.currentTimeMillis();
-        String out;
+    private static String attempt(HeyboxClient c, String path) {
         try {
             JSONObject r = c.getJson(path, null);
             String status = r.optString("status", "");
@@ -255,14 +286,34 @@ final class Diag {
             if (status.isEmpty()) {
                 status = "无status";
             }
-            out = status + (msg.isEmpty() ? "" : " / " + msg);
+            String out = status + (msg.isEmpty() ? "" : " / " + msg);
+            String trace = HeyboxClient.takeTrace();
+            return out + (trace.isEmpty() ? "" : " [" + trace + "]");
         } catch (IllegalArgumentException e) {
-            out = "解析失败 / " + e.getMessage();
+            return "解析失败 / " + e.getMessage();
         } catch (Exception e) {
             String m = e.getMessage() == null ? e.toString() : e.getMessage();
-            out = "异常 / " + e.getClass().getSimpleName() + " " + m;
+            return "异常 / " + e.getClass().getSimpleName() + " " + m;
         }
-        return out + " (" + (System.currentTimeMillis() - t0) + "ms)";
+    }
+
+    /** 连打 3 次：区分“偶发（被顶号/网络）”和“恒定拒绝（协议/权限）”。 */
+    private static String one(HeyboxClient c, String path) {
+        String first = attempt(c, path);
+        String second = attempt(c, path);
+        String third = attempt(c, path);
+        String head = headOf(first);
+        if (head.equals(headOf(second)) && head.equals(headOf(third))) {
+            int i = first.indexOf(" [HTTP");
+            String trace = i > 0 ? first.substring(i) : "";
+            return head + " ×3 一致" + trace;
+        }
+        return "结果不一致 → 1:" + head + " 2:" + headOf(second) + " 3:" + headOf(third);
+    }
+
+    private static String headOf(String s) {
+        int i = s.indexOf(" [HTTP");
+        return i > 0 ? s.substring(0, i) : s;
     }
 
     static String run(Context ctx, String cookieLine, String deviceId) {
@@ -287,6 +338,9 @@ final class Diag {
             HeyboxClient app = new HeyboxClient(pkeyCookie, true, deviceId);
             sb.append("[App参数] 拉任务列表: ").append(one(app, "/task/list_v2/")).append('\n');
             sb.append("[App参数] 签到状态: ").append(one(app, "/task/sign_v3/get_sign_state")).append('\n');
+            sb.append("[App参数] 实际参数: 版本 ").append(app.appVersion).append('/').append(app.appBuild)
+                    .append(" · imei ").append(fingerprint(app.imei))
+                    .append(" · 模式 ").append(app.appMode ? "appMode" : "webMode").append('\n');
         } catch (Exception e) {
             sb.append("[App参数] 初始化失败: ").append(e.getMessage()).append('\n');
         }
@@ -297,7 +351,28 @@ final class Diag {
         } catch (Exception e) {
             sb.append("[网页参数] 初始化失败: ").append(e.getMessage()).append('\n');
         }
+        sb.append("== 调度事件 ==\n");
+        sb.append(trim(Store.eventLog(ctx, "alarm_log"), 8)).append('\n');
+        sb.append("== 登录过程 ==\n");
+        sb.append(trim(Store.eventLog(ctx, "login_log"), 12)).append('\n');
         sb.append("== 结论 ==\n").append(verdict(sb.toString()));
+        return sb.toString();
+    }
+
+    /** 只保留最后 n 行，避免日志无限膨胀。 */
+    private static String trim(String text, int maxLines) {
+        if (text == null || text.trim().isEmpty()) {
+            return "(暂无记录)";
+        }
+        String[] lines = text.split("\n");
+        int start = Math.max(0, lines.length - maxLines);
+        StringBuilder sb = new StringBuilder();
+        for (int i = start; i < lines.length; i++) {
+            if (sb.length() > 0) {
+                sb.append('\n');
+            }
+            sb.append(lines[i]);
+        }
         return sb.toString();
     }
 

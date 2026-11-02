@@ -410,6 +410,14 @@ final class HeyboxClient {
         return "";
     }
 
+    private static final ThreadLocal<String> LAST_TRACE = new ThreadLocal<String>();
+
+    static String takeTrace() {
+        String s = LAST_TRACE.get();
+        LAST_TRACE.remove();
+        return s == null ? "" : s;
+    }
+
     static final class HttpResult {
         final String body;
         final String setCookie;
@@ -423,6 +431,7 @@ final class HeyboxClient {
     private static HttpResult httpFull(String urlStr, String method, Map<String, String> headers, String body)
             throws Exception {
         HttpURLConnection conn = null;
+        long t0 = System.currentTimeMillis();
         try {
             URL url = new URL(urlStr);
             conn = (HttpURLConnection) url.openConnection();
@@ -472,8 +481,10 @@ final class HeyboxClient {
                     }
                 }
             }
-            return new HttpResult(bos.toString("UTF-8"), cookies.toString());
-        } finally {
+            String bodyText = bos.toString("UTF-8");
+            String snip = bodyText.length() > 200 ? bodyText.substring(0, 200) + "…" : bodyText;
+            LAST_TRACE.set("HTTP " + code + " · " + (System.currentTimeMillis() - t0) + "ms · " + snip);
+            return new HttpResult(bodyText, cookies.toString());        } finally {
             if (conn != null) {
                 conn.disconnect();
             }
@@ -773,7 +784,10 @@ final class HeyboxClient {
                     throw new IllegalStateException("HTTP错误 " + code + ": "
                             + errText.substring(0, Math.min(300, errText.length())));
                 }
-                return bos.toString("UTF-8");
+                String bodyText = bos.toString("UTF-8");
+                String snip = bodyText.length() > 200 ? bodyText.substring(0, 200) + "…" : bodyText;
+                LAST_TRACE.set("HTTP " + code + " · " + snip);
+                return bodyText;
             } catch (java.io.IOException e) {
                 last = e;
                 if (attempt < 1) {

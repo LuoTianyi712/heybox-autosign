@@ -82,6 +82,43 @@ final class Store {
         return sp(c).getString("last_diag", "");
     }
 
+    /** 追加一行事件日志（登录过程 / 调度事件），只保留最近 40 行。 */
+    static void appendEvent(Context c, String key, String line) {
+        try {
+            String[] head = line.split("\n");
+            java.util.List<String> list = new java.util.ArrayList<String>();
+            String old = sp(c).getString(key, "");
+            if (!old.isEmpty()) {
+                for (String s : old.split("\n")) {
+                    if (!s.trim().isEmpty()) {
+                        list.add(s);
+                    }
+                }
+            }
+            for (String s : head) {
+                if (!s.trim().isEmpty()) {
+                    list.add(s);
+                }
+            }
+            while (list.size() > 40) {
+                list.remove(0);
+            }
+            StringBuilder sb = new StringBuilder();
+            for (String s : list) {
+                if (sb.length() > 0) {
+                    sb.append('\n');
+                }
+                sb.append(s);
+            }
+            sp(c).edit().putString(key, sb.toString()).apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    static String eventLog(Context c, String key) {
+        return sp(c).getString(key, "");
+    }
+
     static String lastResult(Context c) {
         return sp(c).getString("last_result", "");
     }

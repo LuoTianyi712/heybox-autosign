@@ -624,6 +624,10 @@ public class MainActivity extends Activity {
 
     private void ensureScheduled() {
         Alarms.ensure(this);
+        Store.appendEvent(this, "alarm_log",
+                new java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.CHINA)
+                        .format(new java.util.Date()) + " 打开App · 网络 "
+                        + Diag.networkShort(this) + " · 电量 " + Diag.batteryShort(this));
     }
 
     private void requestNotifPermissionIfNeeded() {

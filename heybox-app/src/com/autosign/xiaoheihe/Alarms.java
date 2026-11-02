@@ -61,6 +61,12 @@ final class Alarms {
     static void ensure(Context ctx) {
         long now = System.currentTimeMillis();
         long next = Store.nextRun(ctx);
+        if (next > 0 && next < now - 5L * 60 * 1000) {
+            java.text.SimpleDateFormat f =
+                    new java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.CHINA);
+            Store.appendEvent(ctx, "alarm_log", "错过排定 " + f.format(new java.util.Date(next))
+                    + "（启动时补记，未触发）");
+        }
         if (next <= now + 60000L) {
             int attempts = Store.attempts(ctx);
             if (attempts > 0 && attempts < MAX_RETRY) {
