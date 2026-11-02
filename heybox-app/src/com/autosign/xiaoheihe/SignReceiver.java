@@ -23,13 +23,16 @@ public class SignReceiver extends BroadcastReceiver {
             public void run() {
                 try {
                     boolean sharesEnabled = Store.sharesEnabled(app);
+                    long expected = Store.nextRun(app);
+                    long now = System.currentTimeMillis();
                     SignWorker.RunResult r = SignWorker.runAll(
                             Store.cookies(app),
                             Store.allowExternal(app),
                             sharesEnabled,
                             Store.deviceId(app));
                     String text = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.CHINA)
-                            .format(new java.util.Date()) + "\n"
+                            .format(new java.util.Date()) + " " + triggerText(expected, now) + "\n"
+                            + Diag.runtimeInfo(app)
                             + SignWorker.join(r.lines, "\n");
                     Store.saveLastResult(app, text);
                     Store.saveResultFile(app, text);
@@ -48,5 +51,21 @@ public class SignReceiver extends BroadcastReceiver {
                 }
             }
         }, "xhh-sign").start();
+    }
+
+    /** 记录本次是准点还是被系统推迟，便于判断厂商休眠策略。 */
+    private static String triggerText(long expected, long now) {
+        if (expected <= 0) {
+            return "闹钟(未记录排定)";
+        }
+        long diff = now - expected;
+        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.CHINA);
+        String at = f.format(new java.util.Date(expected));
+        if (diff < 60000L) {
+            return "闹钟(" + at + " 准点)";
+        }
+        long min = diff / 60000L;
+        return "闹钟(排定 " + at + "，延迟 " + (min >= 60
+                ? (min / 60) + "h" + (min % 60) + "m" : min + "m") + ")";
     }
 }

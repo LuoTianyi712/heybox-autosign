@@ -180,8 +180,12 @@ public class LogActivity extends Activity {
 
         String lastTime = "";
         String firstLine = rawText.split("\n", 2)[0].trim();
-        if (firstLine.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
+        String timeRe = "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}( .*)?";
+        if (firstLine.matches(timeRe)) {
             lastTime = firstLine.substring(5, 16);
+            if (firstLine.length() > 19) {
+                lastTime = lastTime + " · " + firstLine.substring(19).trim();
+            }
         }
         timeView.setText(lastTime.isEmpty() ? "本次运行" : lastTime);
 
@@ -255,11 +259,12 @@ public class LogActivity extends Activity {
             if (line.isEmpty()) {
                 continue;
             }
-            if (i == 0 && line.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
+            if (i == 0 && line.matches(timeRe)) {
                 continue;
             }
             if (line.startsWith("任务: ") || line.startsWith("账号: ") || line.startsWith("任务汇总: ")
-                    || line.startsWith("cookie项: ") || line.startsWith("开关: ")) {
+                    || line.startsWith("cookie项: ") || line.startsWith("开关: ")
+                    || line.startsWith("环境: ") || line.startsWith("调度: ")) {
                 continue;
             }
             hasDetails = true;

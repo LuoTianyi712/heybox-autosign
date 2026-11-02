@@ -423,7 +423,8 @@ public class MainActivity extends Activity {
             public void run() {
                 final SignWorker.RunResult r = SignWorker.runAll(cookies, allowExternal, sharesEnabled,
                         Store.deviceId(MainActivity.this));
-                final String text = nowStr() + "\n" + SignWorker.join(r.lines, "\n");
+                final String text = nowStr() + " 手动\n" + Diag.runtimeInfo(MainActivity.this)
+                        + SignWorker.join(r.lines, "\n");
                 runOnUiThread(new Runnable() {
                     public void run() {
                         Store.saveLastResult(MainActivity.this, text);
