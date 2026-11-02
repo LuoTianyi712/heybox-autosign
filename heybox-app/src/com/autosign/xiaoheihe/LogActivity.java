@@ -33,6 +33,8 @@ public class LogActivity extends Activity {
     private TextView accountView;
     private LinearLayout detailCard;
     private LinearLayout detailContainer;
+    private LinearLayout diagCard;
+    private TextView diagBody;
     private String rawText = "";
     private BroadcastReceiver resultReceiver;
 
@@ -135,8 +137,18 @@ public class LogActivity extends Activity {
         runCard.addView(accountView, accountLp);
         root.addView(runCard);
 
-        detailCard = Ui.card(this);
-        detailCard.addView(Ui.sectionTitle(this, "运行过程"));
+        diagCard = Ui.card(this);
+        diagCard.addView(Ui.sectionTitle(this, "账号诊断"));
+        diagBody = Ui.text(this, "", 11, Ui.BODY);
+        diagBody.setTypeface(Typeface.MONOSPACE);
+        diagBody.setLineSpacing(Ui.dp(this, 3), 1f);
+        diagBody.setTextIsSelectable(true);
+        LinearLayout.LayoutParams dbLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        dbLp.topMargin = Ui.dp(this, 6);
+        diagCard.addView(diagBody, dbLp);
+        root.addView(diagCard);
+        detailCard = Ui.card(this);        detailCard.addView(Ui.sectionTitle(this, "运行过程"));
         detailContainer = new LinearLayout(this);
         detailContainer.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams dcLp = new LinearLayout.LayoutParams(
@@ -151,10 +163,15 @@ public class LogActivity extends Activity {
 
     private void render() {
         rawText = Store.lastResult(this);
+        String diag = Store.diagText(this);
+        if (diagCard != null) {
+            diagCard.setVisibility(diag.trim().isEmpty() ? View.GONE : View.VISIBLE);
+            diagBody.setText(diag);
+        }
         if (rawText.trim().isEmpty()) {
             runCard.setVisibility(View.GONE);
             detailCard.setVisibility(View.GONE);
-            emptyView.setVisibility(View.VISIBLE);
+            emptyView.setVisibility(diag.trim().isEmpty() ? View.VISIBLE : View.GONE);
             return;
         }
         emptyView.setVisibility(View.GONE);
@@ -303,13 +320,26 @@ public class LogActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
+    private String buildCopyText() {
+        StringBuilder sb = new StringBuilder();
+        String diag = Store.diagText(this);
+        if (!diag.trim().isEmpty()) {
+            sb.append(diag.trim()).append("\n\n");
+        }
+        if (!rawText.trim().isEmpty()) {
+            sb.append("== 上次运行 ==\n").append(rawText.trim()).append('\n');
+        }
+        return sb.toString();
+    }
+
     private void copyLog() {
         try {
+            String text = buildCopyText();
             android.content.ClipboardManager cm =
                     (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             if (cm != null) {
                 cm.setPrimaryClip(android.content.ClipData.newPlainText("log",
-                        rawText.isEmpty() ? "还没有运行记录" : rawText));
+                        text.isEmpty() ? "还没有运行记录" : text));
                 Ui.toast(this, "日志已复制");
             }
         } catch (Exception e) {

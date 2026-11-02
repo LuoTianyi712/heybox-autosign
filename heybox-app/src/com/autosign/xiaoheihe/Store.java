@@ -74,6 +74,14 @@ final class Store {
         sp(c).edit().putString("last_result", text).apply();
     }
 
+    static void saveDiag(Context c, String text) {
+        sp(c).edit().putString("last_diag", text).apply();
+    }
+
+    static String diagText(Context c) {
+        return sp(c).getString("last_diag", "");
+    }
+
     static String lastResult(Context c) {
         return sp(c).getString("last_result", "");
     }
@@ -107,6 +115,19 @@ final class Store {
             java.io.File dir = c.getExternalFilesDir(null);
             if (dir != null) {
                 java.io.File f = new java.io.File(dir, "last_result.txt");
+                java.io.FileWriter w = new java.io.FileWriter(f, false);
+                w.write(text);
+                w.close();
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    static void saveDiagFile(Context c, String text) {
+        try {
+            java.io.File dir = c.getExternalFilesDir(null);
+            if (dir != null) {
+                java.io.File f = new java.io.File(dir, "last_diag.txt");
                 java.io.FileWriter w = new java.io.FileWriter(f, false);
                 w.write(text);
                 w.close();

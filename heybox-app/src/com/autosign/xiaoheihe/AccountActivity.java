@@ -259,6 +259,17 @@ public class AccountActivity extends Activity {
                 row.addView(badge, badgeLp);
             }
 
+            TextView diag = Ui.textButton(this, "诊断", Ui.ACCENT);
+            LinearLayout.LayoutParams diagLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            diagLp.rightMargin = Ui.dp(this, 8);
+            diag.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    runDiag(r);
+                }
+            });
+            row.addView(diag, diagLp);
+
             TextView del = Ui.textButton(this, "删除", Ui.RED);
             del.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
@@ -268,6 +279,39 @@ public class AccountActivity extends Activity {
             row.addView(del);
             accountContainer.addView(row);
         }
+    }
+
+    private void runDiag(final Accounts.Row r) {
+        String line = "";
+        for (String item : splitCookies(cookieBox.getText().toString())) {
+            if (r.id.equals(Accounts.cookieId(item))) {
+                line = item;
+                break;
+            }
+        }
+        if (line.isEmpty()) {
+            Ui.toast(this, "找不到该账号的登录态");
+            return;
+        }
+        final String cookie = line;
+        final String deviceId = Store.deviceId(this);
+        Ui.toast(this, "正在诊断…");
+        new Thread(new Runnable() {
+            public void run() {
+                String stamp = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                        java.util.Locale.CHINA).format(new java.util.Date());
+                String text = stamp + " 诊断\n" + Diag.environment(AccountActivity.this)
+                        + Diag.run(AccountActivity.this, cookie, deviceId);
+                Store.saveDiag(AccountActivity.this, text);
+                Store.saveDiagFile(AccountActivity.this, text);
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        Ui.toast(AccountActivity.this, "诊断结果已写入运行日志");
+                        startActivity(new Intent(AccountActivity.this, LogActivity.class));
+                    }
+                });
+            }
+        }, "xhh-diag").start();
     }
 
     private void checkAll() {
