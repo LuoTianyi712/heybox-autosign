@@ -130,8 +130,15 @@ final class Diag {
         sb.append(" · 网络 ").append(netType(ctx)).append(" · 代理 ").append(proxyOf(ctx))
                 .append(" · VPN ").append(vpnOn(ctx) ? "开" : "无");
         sb.append('\n');
+        sb.append("调度: ").append(scheduleLine(ctx)).append('\n');
+        return sb.toString();
+    }
+
+    /** 调度一行式描述：下次时间/重试/精确闹钟/电池优化/Doze/活跃度/开机/电量。 */
+    static String scheduleLine(Context ctx) {
+        StringBuilder sb = new StringBuilder();
         long next = Store.nextRun(ctx);
-        sb.append("调度: 下次 ").append(next > 0
+        sb.append("下次 ").append(next > 0
                 ? new SimpleDateFormat("MM-dd HH:mm", Locale.CHINA).format(new Date(next))
                 : "未排定");
         sb.append(" · 重试 ").append(Store.attempts(ctx)).append(" 次")
@@ -141,7 +148,6 @@ final class Diag {
                 .append(" · 活跃度 ").append(bucket(ctx))
                 .append(" · 开机 ").append(uptimeText())
                 .append(" · 电量 ").append(batteryText(ctx));
-        sb.append('\n');
         return sb.toString();
     }
 
@@ -211,13 +217,14 @@ final class Diag {
                 return "未知";
             }
             switch (usm.getAppStandbyBucket()) {
+                case 5: return "EXEMPTED";
                 case 10: return "ACTIVE";
                 case 20: return "WORKING_SET";
                 case 30: return "FREQUENT";
                 case 40: return "RARE";
                 case 45: return "RESTRICTED";
                 case 50: return "NEVER";
-                default: return "其他";
+                default: return "其他(" + usm.getAppStandbyBucket() + ")";
             }
         } catch (Exception e) {
             return "未知";
@@ -272,7 +279,9 @@ final class Diag {
             sb.append("系统: ").append(rom).append('\n');
         }
         sb.append("系统构建: ").append(Build.DISPLAY).append('\n');
-        sb.append("网络: ").append(netType(ctx)).append('\n');
+        sb.append("网络: ").append(netType(ctx)).append(" · 代理 ").append(proxyOf(ctx))
+                .append(" · VPN ").append(vpnOn(ctx) ? "开" : "无").append('\n');
+        sb.append("调度: ").append(scheduleLine(ctx)).append('\n');
         sb.append("时区: ").append(java.util.TimeZone.getDefault().getID())
                 .append(" 语言: ").append(Locale.getDefault().toString()).append('\n');
         return sb.toString();

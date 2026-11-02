@@ -97,7 +97,10 @@ final class Store {
             }
             for (String s : head) {
                 if (!s.trim().isEmpty()) {
-                    list.add(s);
+                    boolean dup = !list.isEmpty() && lastBody(list.get(list.size() - 1)).equals(lastBody(s));
+                    if (!dup) {
+                        list.add(s);
+                    }
                 }
             }
             while (list.size() > 40) {
@@ -113,6 +116,12 @@ final class Store {
             sp(c).edit().putString(key, sb.toString()).apply();
         } catch (Exception ignored) {
         }
+    }
+
+    /** 去掉行首的时间戳，用于相邻重复判断。 */
+    private static String lastBody(String line) {
+        int i = line.indexOf(' ');
+        return i > 0 ? line.substring(i + 1) : line;
     }
 
     static String eventLog(Context c, String key) {

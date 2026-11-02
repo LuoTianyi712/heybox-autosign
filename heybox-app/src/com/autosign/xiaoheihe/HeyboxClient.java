@@ -745,6 +745,7 @@ final class HeyboxClient {
     private static String http(String urlStr, String method, Map<String, String> headers, String body)
             throws Exception {
         IOException last = null;
+        long t0 = System.currentTimeMillis();
         for (int attempt = 0; attempt < 2; attempt++) {
             HttpURLConnection conn = null;
             try {
@@ -786,7 +787,7 @@ final class HeyboxClient {
                 }
                 String bodyText = bos.toString("UTF-8");
                 String snip = bodyText.length() > 200 ? bodyText.substring(0, 200) + "…" : bodyText;
-                LAST_TRACE.set("HTTP " + code + " · " + snip);
+                LAST_TRACE.set("HTTP " + code + " · " + (System.currentTimeMillis() - t0) + "ms · " + snip);
                 return bodyText;
             } catch (java.io.IOException e) {
                 last = e;
